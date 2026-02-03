@@ -1,0 +1,160 @@
+<!-- HTML -->
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #fff0f6; /* licht roze achtergrond */
+    color: #4a0026; /* donker roze tekst */
+    padding: 20px;
+  }
+  button {
+    background-color: #ff99cc;
+    border: none;
+    padding: 10px 20px;
+    margin: 5px;
+    color: white;
+    font-weight: bold;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  button:hover { background-color: #ff66aa; }
+  #uploadStatus, #summaryOutput, #quizOutput, #planOutput {
+    margin-top: 15px;
+    padding: 15px;
+    background: #ffe6f0;
+    border-radius: 12px;
+  }
+  pre {
+    background: #ffd6e8;
+    padding: 10px;
+    border-radius: 10px;
+    overflow-x: auto;
+  }
+  img {
+    max-width: 100%;
+    margin-top: 10px;
+    border-radius: 10px;
+  }
+</style>
+
+<h2>📄 Bestanden uploaden</h2>
+<input type="file" id="fileInput" multiple>
+<div id="uploadStatus"></div>
+<button onclick="readFiles()">Upload bestanden</button>
+
+<h2>📝 Samenvatting</h2>
+<button onclick="makeAISummary()">Maak samenvatting</button>
+<div id="summaryOutput"></div>
+
+<h2>❓ Quiz</h2>
+<button onclick="makeQuiz()">Maak quiz</button>
+<div id="quizOutput"></div>
+
+<h2>📅 Leerplan</h2>
+<input type="date" id="deadline">
+<input type="text" id="days" placeholder="0,1,2,... voor zondag t/m zaterdag">
+<button onclick="createPlan()">Maak leerplan</button>
+<div id="planOutput"></div>
+
+<script>
+let docs = [];
+
+// Bestanden uploaden en status tonen
+async function readFiles() {
+  const files = document.getElementById('fileInput').files;
+  docs = [];
+  const statusEl = document.getElementById('uploadStatus');
+  statusEl.innerHTML = "";
+
+  for (const file of files) {
+    const text = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(file);
+    });
+    docs.push({ name: file.name, text });
+    statusEl.innerHTML += `<p>📄 ${file.name} geladen!</p>`;
+  }
+}
+
+// Samenvatting gericht op leerdoelen
+async function makeAISummary() {
+  if (docs.length === 0) return alert("Upload eerst bestanden!");
+  const outputEl = document.getElementById('summaryOutput');
+  outputEl.innerHTML = "⏳ Samenvatting genereren...";
+
+  try {
+    // Dit is een voorbeeld backend request
+    const response = await fetch('/api/summarize', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ docs, focus: "leerdoelen, belangrijke punten, foto's" })
+    });
+    const result = await response.json();
+
+    // Simuleer afbeeldingen als demo
+    let html = `<pre>${result.summary}</pre>`;
+    if (result.images) {
+      result.images.forEach(imgUrl => {
+        html += `<img src="${imgUrl}" alt="Afbeelding bij samenvatting">`;
+      });
+    }
+    outputEl.innerHTML = html;
+
+  } catch(e) {
+    outputEl.innerHTML = "❌ Fout bij het genereren van samenvatting.";
+    console.error(e);
+  }
+}
+
+// Quiz maken met echte vragen
+async function makeQuiz() {
+  if (docs.length === 0) return alert("Upload eerst bestanden!");
+  const outputEl = document.getElementById('quizOutput');
+  outputEl.innerHTML = "⏳ Quizvragen genereren...";
+
+  try {
+    // Backend request naar AI om vragen te genereren
+    const response = await fetch('/api/generate-quiz', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ docs, questionsPerDoc: 3 })
+    });
+    const result = await response.json();
+    let html = "";
+    result.quiz.forEach(q => {
+      html += `<p>❓ ${q.question}</p>`;
+    });
+    outputEl.innerHTML = html;
+
+  } catch(e) {
+    outputEl.innerHTML = "❌ Fout bij het genereren van quiz.";
+    console.error(e);
+  }
+}
+
+// Leerplan maken als agenda
+function createPlan() {
+  if (docs.length === 0) return alert("Upload eerst bestanden!");
+  const deadline = new Date(document.getElementById('deadline').value);
+  const days = document.getElementById('days').value.split(',').map(Number).filter(n => !isNaN(n));
+  if (!days.length) return alert("Voer geldige dagen in (0-6).");
+
+  let cur = new Date();
+  cur.setHours(0,0,0,0);
+  deadline.setHours(0,0,0,0);
+  let plan = "";
+  let i = 0;
+
+  while(cur <= deadline) {
+    if(days.includes(cur.getDay()) && i < docs.length) {
+      plan += `<div>📅 ${cur.toDateString()}: leer ${docs[i].name}</div>`;
+      i++;
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  document.getElementById('planOutput').innerHTML = plan;
+}
+</script>
