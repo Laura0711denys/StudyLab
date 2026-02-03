@@ -3,46 +3,148 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Studie Assistent Webapp</title>
-<link rel="stylesheet" href="style.css">
+<title>Mijn Roze Leer App</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #ffe6f3; /* zacht roze */
+    color: #ff3399; /* fel roze */
+    padding: 20px;
+  }
+  h2 { color: #ff1a75; }
+  button {
+    background-color: #ff66cc;
+    border: none;
+    padding: 10px 20px;
+    margin: 5px;
+    color: white;
+    font-weight: bold;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  button:hover { background-color: #ff33aa; }
+  input { padding: 5px; border-radius: 8px; border: 1px solid #ff99cc; margin: 5px 0; }
+  #uploadStatus, #summaryOutput, #quizOutput, #planOutput {
+    margin-top: 15px;
+    padding: 15px;
+    background: #ffd6ea; /* licht roze vakje */
+    border-radius: 12px;
+  }
+  pre {
+    background: #ffcce6;
+    padding: 10px;
+    border-radius: 10px;
+    overflow-x: auto;
+  }
+  img {
+    max-width: 100%;
+    margin-top: 10px;
+    border-radius: 10px;
+  }
+</style>
 </head>
 <body>
-<h1>📘 Studie Assistent</h1>
 
-<nav>
-<button onclick="openTab('upload')">Upload</button>
-<button onclick="openTab('summary')">Samenvatting</button>
-<button onclick="openTab('quiz')">Quiz</button>
-<button onclick="openTab('planning')">Planning</button>
-</nav>
+<h1>🌸 Mijn Roze Leer App 🌸</h1>
 
-<div id="upload" class="tabcontent">
-<h2>Upload documenten 📄</h2>
+<h2>📄 Bestanden uploaden</h2>
 <input type="file" id="fileInput" multiple>
-<button onclick="readFiles()">Lees documenten</button>
 <div id="uploadStatus"></div>
-</div>
+<button onclick="readFiles()">Upload bestanden</button>
 
-<div id="summary" class="tabcontent">
-<h2>AI Samenvatting 🤖</h2>
-<button onclick="makeAISummary()">Maak Samenvatting</button>
+<h2>📝 Samenvatting</h2>
+<button onclick="makeAISummary()">Maak samenvatting</button>
 <div id="summaryOutput"></div>
-</div>
 
-<div id="quiz" class="tabcontent">
-<h2>Quiz 🎯</h2>
-<button onclick="makeQuiz()">Genereer Quiz</button>
+<h2>❓ Quiz</h2>
+<button onclick="makeQuiz()">Maak quiz</button>
 <div id="quizOutput"></div>
-</div>
 
-<div id="planning" class="tabcontent">
-<h2>Planning 📅</h2>
-<label>Deadline: <input type="date" id="deadline"></label><br>
-<label>Beschikbare dagen (bv. 1,2,3): <input type="text" id="days"></label><br>
-<button onclick="createPlan()">Maak Planning</button>
+<h2>📅 Leerplan</h2>
+<input type="date" id="deadline">
+<input type="text" id="days" placeholder="0,1,2,... voor zondag t/m zaterdag">
+<button onclick="createPlan()">Maak leerplan</button>
 <div id="planOutput"></div>
-</div>
 
-<script src="script.js"></script>
+<script>
+let docs = [];
+
+// Upload bestanden en toon status
+async function readFiles() {
+  const files = document.getElementById('fileInput').files;
+  docs = [];
+  const statusEl = document.getElementById('uploadStatus');
+  statusEl.innerHTML = "";
+
+  for (const file of files) {
+    const text = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(file);
+    });
+    docs.push({ name: file.name, text });
+    statusEl.innerHTML += `<p>📄 ${file.name} geladen!</p>`;
+  }
+}
+
+// Simuleer samenvatting gericht op leerdoelen (kan later backend AI gebruiken)
+async function makeAISummary() {
+  if (docs.length === 0) return alert("Upload eerst bestanden!");
+  const outputEl = document.getElementById('summaryOutput');
+  outputEl.innerHTML = "⏳ Samenvatting genereren...";
+
+  setTimeout(() => { // Simuleer verwerking
+    let summary = "";
+    docs.forEach(d => {
+      summary += `📌 Samenvatting van ${d.name}:\n- Leerdoelen: ...\n- Belangrijke punten: ...\n\n`;
+    });
+    outputEl.innerHTML = `<pre>${summary}</pre><img src="https://images.unsplash.com/photo-1612197528707-7e1d5a2c3f6c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=600" alt="Roze inspiratie">`;
+  }, 1000);
+}
+
+// Simuleer quizvragen
+function makeQuiz() {
+  if (docs.length === 0) return alert("Upload eerst bestanden!");
+  const outputEl = document.getElementById('quizOutput');
+  outputEl.innerHTML = "⏳ Quizvragen genereren...";
+
+  setTimeout(() => {
+    let html = "";
+    docs.forEach(d => {
+      for (let i=1; i<=3; i++) {
+        html += `<p>❓ Vraag ${i} bij ${d.name}: [Schrijf hier je vraag]</p>`;
+      }
+    });
+    outputEl.innerHTML = html;
+  }, 500);
+}
+
+// Leerplan als agenda
+function createPlan() {
+  if (docs.length === 0) return alert("Upload eerst bestanden!");
+  const deadline = new Date(document.getElementById('deadline').value);
+  const days = document.getElementById('days').value.split(',').map(Number).filter(n => !isNaN(n));
+  if (!days.length) return alert("Voer geldige dagen in (0-6).");
+
+  let cur = new Date();
+  cur.setHours(0,0,0,0);
+  deadline.setHours(0,0,0,0);
+  let plan = "";
+  let i = 0;
+
+  while(cur <= deadline) {
+    if(days.includes(cur.getDay()) && i < docs.length) {
+      plan += `<div>📅 ${cur.toDateString()}: leer ${docs[i].name}</div>`;
+      i++;
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  document.getElementById('planOutput').innerHTML = plan;
+}
+</script>
+
 </body>
 </html>
